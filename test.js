@@ -4,7 +4,7 @@ var Chunky = require('./Chunky.js'),
         return !a.some((n, i) => { return n !== b[i] })
     }
 
-while (testData.length < 100000) {
+while (testData.length < 10000) {
     testData.push(Math.round(Math.random() * 1000))
 }
 
@@ -13,9 +13,9 @@ async function test() {
     try {
 
         var filter = (number, i) => {
-            return number > 500
-        },
-        chunk = 100000,
+                return number > 500
+            },
+            chunk = 500,
             chunkyFilter = await Chunky.filter(testData, filter, chunk),
             nativeFilter = testData.filter(filter),
             filtersMatch = arraysMatch(chunkyFilter, nativeFilter),
@@ -47,7 +47,7 @@ async function test() {
 }
 var start = Date.now()
 test().then(success => {
-    console.log('pass: '+success+' ('+(Date.now() - start)+'ms)')
+    console.log('pass: ' + success + ' (' + (Date.now() - start) + 'ms)')
 }).catch(error => {
-    console.log('error: '+error+' ('+(Date.now() - start)+'ms)')
+    console.log('error: ' + error + ' (' + (Date.now() - start) + 'ms)')
 })

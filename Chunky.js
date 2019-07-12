@@ -4,7 +4,6 @@ var _chunk = 500,
 
 function walk({ array, chunk = _chunk, wait = _wait, onStep }) {
     return new Promise((resolve, reject) => {
-
         var index = 0,
             step = () => {
                 var start = index,
@@ -24,7 +23,6 @@ function walk({ array, chunk = _chunk, wait = _wait, onStep }) {
                 resolve()
 
             }
-
         step()
     })
 }

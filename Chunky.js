@@ -1,7 +1,11 @@
 // chunky async iterators
 var _chunk = 500,
     _wait = 0
-
+function sleep(ms) {
+    return new Promise((resolve, reject) => {
+        setTimeout(resolve, ms)
+    })
+}
 async function walk({ array, chunk = _chunk, wait = _wait, onStep }) {
 
     var index = 0,
@@ -9,7 +13,7 @@ async function walk({ array, chunk = _chunk, wait = _wait, onStep }) {
             var start = index,
                 end = Math.min(array.length, start + chunk),
                 stop = false,
-                _continue = () => { 
+                _continue = () => {
                     console.log('CONTINUE')
                     stop = true
                 }
@@ -19,9 +23,11 @@ async function walk({ array, chunk = _chunk, wait = _wait, onStep }) {
             }
 
             index = end
-            
+
             if (end < array.length && !stop) {
-                // setTimeout(step, wait)
+
+                if (wait) await sleep(wait)
+
                 await step()
             }
 
@@ -30,7 +36,7 @@ async function walk({ array, chunk = _chunk, wait = _wait, onStep }) {
 
     await step()
 
-    return 
+    return
 }
 
 const Chunky = {

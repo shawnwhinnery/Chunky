@@ -1,5 +1,27 @@
 {
-    "version": "1.0.0",
-    "author": "Pocashawntis",
-    "main": "Chunky.js"
+  "version": "1.0.0",
+  "author": "Pocashawntis",
+  "main": "Chunky.js",
+  "name": "@liptons/chunky",
+  "description": "async iteration toolkit",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shawnwhinnery/Chunky.git"
+  },
+  "keywords": [
+    "async",
+    "iterator",
+    "tools"
+  ],
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/shawnwhinnery/Chunky/issues"
+  },
+  "homepage": "https://github.com/shawnwhinnery/Chunky#readme",
+  "devDependencies": {
+    "colors": "^1.4.0"
+  }
 }

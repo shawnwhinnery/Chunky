@@ -2,29 +2,35 @@
 var _chunk = 500,
     _wait = 0
 
-function walk({ array, chunk = _chunk, wait = _wait, onStep }) {
-    return new Promise((resolve, reject) => {
-        var index = 0,
-            step = () => {
-                var start = index,
-                    end = Math.min(array.length, start + chunk),
-                    complete = () => { end = array.length }
+async function walk({ array, chunk = _chunk, wait = _wait, onStep }) {
 
-                for (let i = start; i < end; i++) {
-                    onStep(i, complete)
+    var index = 0,
+        step = async () => {
+            var start = index,
+                end = Math.min(array.length, start + chunk),
+                stop = false,
+                _continue = () => { 
+                    console.log('CONTINUE')
+                    stop = true
                 }
 
-                index = end
-
-                if (end < array.length) {
-                    return setTimeout(step, wait)
-                }
-
-                resolve()
-
+            for (let i = start; (i < end && !stop); i++) {
+                await onStep(i, _continue)
             }
-        step()
-    })
+
+            index = end
+            
+            if (end < array.length && !stop) {
+                // setTimeout(step, wait)
+                await step()
+            }
+
+            return true
+        }
+
+    await step()
+
+    return 
 }
 
 const Chunky = {
@@ -34,8 +40,9 @@ const Chunky = {
             array,
             chunk,
             wait,
-            onStep: (i) => {
-                newArray.push(fn(array[i], i))
+            onStep: async (i) => {
+                var output = await fn(array[i], i)
+                newArray.push(output)
             }
         })
         return newArray
@@ -45,7 +52,7 @@ const Chunky = {
             array,
             chunk,
             wait,
-            onStep: i => fn(array[i], i)
+            onStep: async i => await fn(array[i], i)
         })
     },
     some: async (array, fn, chunk = _chunk, wait = _wait) => {
@@ -54,15 +61,31 @@ const Chunky = {
             array,
             chunk,
             wait,
-            onStep: (i, end) => {
-                if (fn(array[i], i)) {
+            onStep: async (i, _continue) => {
+                var isMatch = await fn(array[i], i)
+                if (isMatch) {
                     one = true
-                    end()
+                    _continue()
                 }
-
             }
         })
         return one
+    },
+    every: async (array, fn, chunk = _chunk, wait = _wait) => {
+        var every = true
+        await walk({
+            array,
+            chunk,
+            wait,
+            onStep: async (i, _continue) => {
+                var passes = await fn(array[i], i)
+                if (!passes) {
+                    every = false
+                    _continue()
+                }
+            }
+        })
+        return every
     },
     filter: async (array, fn, chunk = _chunk, wait = _wait) => {
         var newArray = []
@@ -70,12 +93,41 @@ const Chunky = {
             array,
             chunk,
             wait,
-            onStep: (i) => {
-                if (fn(array[i], i)) newArray.push(array[i])
+            onStep: async (i) => {
+                if (await fn(array[i], i)) newArray.push(array[i])
             }
         })
         return newArray
-    }
+    },
+    find: async (array, fn, chunk = _chunk, wait = _wait) => {
+        var obj
+        await walk({
+            array,
+            chunk,
+            wait,
+            onStep: async (i, _continue) => {
+                if (await fn(array[i], i)) {
+                    obj = array[i]
+                    _continue()
+                }
+            }
+        })
+        return obj
+    },
+    reduce: async (array, fn, accumulator, chunk = _chunk, wait = _wait) => {
+
+        await walk({
+            array,
+            chunk,
+            wait,
+            onStep: async (i, _continue) => {
+                accumulator = await fn(accumulator, array[i])
+            }
+        })
+
+        return accumulator
+
+    },
 }
 
 

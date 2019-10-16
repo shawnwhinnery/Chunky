@@ -1,33 +1,39 @@
 // chunky async iterators
-var _chunk = 500,
-    _wait = 0
+const defaults = { chunk: 10, wait: 0 }
+
 function sleep(ms) {
     return new Promise((resolve, reject) => {
         setTimeout(resolve, ms)
     })
 }
-async function walk({ array, chunk = _chunk, wait = _wait, onStep }) {
+
+async function walk(array, iterator, options = {}) {
+
+    const {
+        chunk,
+        wait,
+    } = { ...defaults, ...options }
 
     var index = 0,
         step = async () => {
+
             var start = index,
                 end = Math.min(array.length, start + chunk),
-                stop = false,
+                continued = false,
                 _continue = () => {
-                    console.log('CONTINUE')
-                    stop = true
+                    continued = true
                 }
 
-            for (let i = start; (i < end && !stop); i++) {
-                await onStep(i, _continue)
+            for (let i = start; i < end; i++) {
+                iterator(i, _continue)
+                if (continued) continue
             }
 
             index = end
 
-            if (end < array.length && !stop) {
+            if (wait) await sleep(wait)
 
-                if (wait) await sleep(wait)
-
+            if (end < array.length && !continued) {
                 await step()
             }
 
@@ -37,102 +43,97 @@ async function walk({ array, chunk = _chunk, wait = _wait, onStep }) {
     await step()
 
     return
+
 }
 
 const Chunky = {
-    map: async (array, fn, chunk = _chunk, wait = _wait) => {
+    map: async (array, fn, options) => {
         var newArray = []
-        await walk({
+        await walk(
             array,
-            chunk,
-            wait,
-            onStep: async (i) => {
-                var output = await fn(array[i], i)
+            (i) => {
+                var output = fn(array[i], i)
                 newArray.push(output)
-            }
-        })
+            },
+            options)
         return newArray
     },
-    forEach: async (array, fn, chunk = _chunk, wait = _wait) => {
-        return await walk({
-            array,
-            chunk,
-            wait,
-            onStep: async i => await fn(array[i], i)
-        })
+    forEach: async (array, fn, options) => {
+        return await walk(array, i => fn(array[i], i), options)
     },
-    some: async (array, fn, chunk = _chunk, wait = _wait) => {
+    some: async (array, fn, options) => {
         var one = false
-        await walk({
+        await walk(
             array,
-            chunk,
-            wait,
-            onStep: async (i, _continue) => {
-                var isMatch = await fn(array[i], i)
+            (i, _continue) => {
+                var isMatch = fn(array[i], i)
                 if (isMatch) {
                     one = true
                     _continue()
                 }
-            }
-        })
+            }, options)
         return one
     },
-    every: async (array, fn, chunk = _chunk, wait = _wait) => {
+    every: async (array, fn, options) => {
         var every = true
-        await walk({
+        await walk(
             array,
-            chunk,
-            wait,
-            onStep: async (i, _continue) => {
-                var passes = await fn(array[i], i)
+            (i, _continue) => {
+                var passes = fn(array[i], i)
                 if (!passes) {
                     every = false
                     _continue()
                 }
-            }
-        })
+            }, options)
         return every
     },
-    filter: async (array, fn, chunk = _chunk, wait = _wait) => {
+    filter: async (array, fn, options) => {
         var newArray = []
-        await walk({
+        await walk(
             array,
-            chunk,
-            wait,
-            onStep: async (i) => {
-                if (await fn(array[i], i)) newArray.push(array[i])
-            }
-        })
+            (i) => {
+                if (fn(array[i], i)) newArray.push(array[i])
+            },
+            options)
         return newArray
     },
-    find: async (array, fn, chunk = _chunk, wait = _wait) => {
+    find: async (array, fn, options) => {
         var obj
-        await walk({
+        await walk(
             array,
-            chunk,
-            wait,
-            onStep: async (i, _continue) => {
-                if (await fn(array[i], i)) {
+            (i, _continue) => {
+                if (fn(array[i], i) && !obj) {
                     obj = array[i]
                     _continue()
                 }
-            }
-        })
+            },
+            options)
         return obj
     },
-    reduce: async (array, fn, accumulator, chunk = _chunk, wait = _wait) => {
+    reduce: async (array, fn, accumulator, options) => {
 
-        await walk({
+        await walk(
             array,
-            chunk,
-            wait,
-            onStep: async (i, _continue) => {
-                accumulator = await fn(accumulator, array[i])
-            }
-        })
+            (i, _continue) => {
+                accumulator = fn(accumulator, array[i])
+            })
 
         return accumulator
 
+    },
+    quest: async (array = [], fn, options) => {
+        var i = 0,
+            step = async () => {
+                await fn(array[i], i)
+                i++
+                if (i < array.length) {
+                    if(options.wait) await sleep(options.wait)
+                    await step()
+                } else {
+                    Promise.resolve()
+                }
+            }
+        step()
     },
 }
 

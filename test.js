@@ -9,7 +9,7 @@ var Chunky = require('./Chunky.js'),
         )
     }
 
-while (testData.length < 500) {
+while (testData.length < 10) {
     testData.push(testData.length * testData.length)
 }
 
@@ -73,7 +73,7 @@ const SPECS = [
         assertion: "The output of Chunky.find is identical to Array.find",
         test: async () => {
             var iterator = (number, i) => {
-                return number > 4
+                return number > 8
             },
                 chunkyFind = await Chunky.find(testData, iterator),
                 nativeFind = testData.find(iterator),
@@ -106,19 +106,72 @@ const SPECS = [
         title: "Chunky.reduce",
         assertion: "The output of Chunky.reduce is identical to Array.reduce",
         test: async () => {
-            var iterator = (acumulator, number) => {
-                return acumulator += "-"+number.toString()
+            var iterator = (_acumulator, number) => {
+                return _acumulator += "-"+number.toString()
             },
                 chunkyAcumulator = '',
                 nativeAcumulator = '',
                 chunkyReduce = await Chunky.reduce(testData, iterator, chunkyAcumulator),
                 nativeReduce = testData.reduce(iterator, nativeAcumulator),
                 reducesMatch = chunkyReduce === nativeReduce
+
             return {
                 pass: reducesMatch,
                 chunkyReduce,
                 nativeReduce
             }
+        }
+    },
+    {
+        title: "Chunky wait",
+        assertion: "iterations times should be at least 1 second apart",
+        test: async () => {
+            var _pass = true,
+                array = [0,1,2, 3],
+                previous = 0,
+                iterator = () => {
+                        var delta = Date.now() - previous,
+                            pass = (previous) ? (delta) > 1000 : true
+                        
+                        previous = Date.now()
+                        if(!pass){
+                            _pass = false
+                        }
+                }
+
+            await Chunky.forEach(array, iterator, {
+                chunk:1, 
+                wait: 1100, 
+                awaitIterator: true
+            })
+
+            return {pass: _pass}
+        }
+    },
+    {
+        title: "Chunky quest",
+        assertion: "resolve times should be at least 1 second apart and in order",
+        test: async () => {
+            var array = [0,1,2, 3],
+                previous = 0,
+                iterator = () => {
+                    return new Promise((resolve, reject) => {
+                        var delta = Date.now() - previous,
+                            pass = (previous) ? (delta) > 1000 : true
+                        
+                        previous = Date.now()
+
+                        if(pass){
+                            setTimeout(resolve, 1100)
+                        } else {
+                            reject(`Chunky didn't wait long enough before iterating, expected 1000ms, actual was ${delta}`)
+                        }
+                    })
+                }
+
+            await Chunky.quest(array, iterator)
+
+            return {pass: true}
         }
     },
 ]
